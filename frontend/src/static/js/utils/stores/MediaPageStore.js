@@ -541,7 +541,7 @@ class MediaPageStore extends EventEmitter {
       case 'playlist-id':
         r = this.pagePlaylistId;
         break;
-      case 'playlist-next-media-url':
+      case 'playlist-next-media-url': {
         if (!this.pagePlaylistData) {
           break;
         }
@@ -557,12 +557,66 @@ class MediaPageStore extends EventEmitter {
           i += 1;
         }
 
-        let nextItem = activeItem + 1;
+        browserCache = PageStore.get('browser-cache');
+        const shuffleEnabled = true === browserCache.get('shufflePlaylist[' + this.pagePlaylistId + ']');
 
-        if (nextItem === this.pagePlaylistData.playlist_media.length) {
-          browserCache = PageStore.get('browser-cache');
-          if (true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']')) {
-            nextItem = 0;
+        let nextItem;
+        
+        if (shuffleEnabled) {
+          // Get or initialize shuffle history and position
+          let shuffleHistory = browserCache.get('shuffleHistory[' + this.pagePlaylistId + ']') || [];
+          let shufflePosition = browserCache.get('shufflePosition[' + this.pagePlaylistId + ']') || -1;
+          
+          // Check if we're navigating forward through existing history
+          if (shufflePosition < shuffleHistory.length - 1) {
+            // Move forward in history
+            shufflePosition++;
+            nextItem = shuffleHistory[shufflePosition];
+          } else {
+            // Pick a new random item and add to history
+            const playlistLength = this.pagePlaylistData.playlist_media.length;
+            if (playlistLength > 1) {
+              // Generate random index different from current
+              do {
+                nextItem = Math.floor(Math.random() * playlistLength);
+              } while (nextItem === activeItem);
+              
+              // Add current item to history if not already there at this position
+              if (shufflePosition === -1 || (shufflePosition >= 0 && shuffleHistory[shufflePosition] !== activeItem)) {
+                // Trim history beyond current position (if user went back then forward to new item)
+                shuffleHistory = shuffleHistory.slice(0, shufflePosition + 1);
+                shuffleHistory.push(activeItem);
+                shufflePosition++;
+              }
+              
+              // Add next item to history
+              shuffleHistory.push(nextItem);
+              shufflePosition++;
+              
+              // Limit history size to prevent memory issues (keep last 100 items)
+              if (shuffleHistory.length > 100) {
+                const trim = shuffleHistory.length - 100;
+                shuffleHistory = shuffleHistory.slice(trim);
+                shufflePosition -= trim;
+              }
+              
+              browserCache.set('shuffleHistory[' + this.pagePlaylistId + ']', shuffleHistory);
+              browserCache.set('shufflePosition[' + this.pagePlaylistId + ']', shufflePosition);
+            } else {
+              // If only one item, loop to it if loop is enabled
+              nextItem = true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']') ? 0 : null;
+            }
+          }
+        } else {
+          // Sequential mode
+          nextItem = activeItem + 1;
+
+          if (nextItem === this.pagePlaylistData.playlist_media.length) {
+            if (true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']')) {
+              nextItem = 0;
+            } else {
+              nextItem = null;
+            }
           }
         }
 
@@ -571,7 +625,8 @@ class MediaPageStore extends EventEmitter {
         }
 
         break;
-      case 'playlist-previous-media-url':
+      }
+      case 'playlist-previous-media-url': {
         if (!this.pagePlaylistData) {
           break;
         }
@@ -587,15 +642,35 @@ class MediaPageStore extends EventEmitter {
           i += 1;
         }
 
-        let previousItem = activeItem - 1;
+        browserCache = PageStore.get('browser-cache');
+        const shuffleEnabled = true === browserCache.get('shufflePlaylist[' + this.pagePlaylistId + ']');
 
-        if (0 === activeItem) {
-          previousItem = null;
+        let previousItem;
+        
+        if (shuffleEnabled) {
+          // In shuffle mode, go back through playback history
+          let shuffleHistory = browserCache.get('shuffleHistory[' + this.pagePlaylistId + ']') || [];
+          let shufflePosition = browserCache.get('shufflePosition[' + this.pagePlaylistId + ']') || -1;
+          
+          if (shufflePosition > 0) {
+            // Move back in history
+            shufflePosition--;
+            previousItem = shuffleHistory[shufflePosition];
+            browserCache.set('shufflePosition[' + this.pagePlaylistId + ']', shufflePosition);
+          } else {
+            // No history to go back to - previous is disabled in shuffle mode at start of history
+            previousItem = null;
+          }
+        } else {
+          // Sequential mode - go to previous item in playlist order
+          previousItem = activeItem - 1;
 
-          browserCache = PageStore.get('browser-cache');
+          if (0 === activeItem) {
+            previousItem = null;
 
-          if (true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']')) {
-            previousItem = this.pagePlaylistData.playlist_media.length - 1;
+            if (true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']')) {
+              previousItem = this.pagePlaylistData.playlist_media.length - 1;
+            }
           }
         }
 
@@ -604,6 +679,7 @@ class MediaPageStore extends EventEmitter {
         }
 
         break;
+      }
     }
     return r;
   }

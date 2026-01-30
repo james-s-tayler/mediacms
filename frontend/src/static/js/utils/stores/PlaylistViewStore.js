@@ -63,6 +63,13 @@ class PlaylistViewStore extends EventEmitter {
         }
         this.data.enabledShuffle = !this.data.enabledShuffle;
         this.browserCache.set('shufflePlaylist[' + this.data.playlistId + ']', this.data.enabledShuffle);
+        
+        // Clear shuffle history when turning shuffle off
+        if (!this.data.enabledShuffle) {
+          this.browserCache.set('shuffleHistory[' + this.data.playlistId + ']', []);
+          this.browserCache.set('shufflePosition[' + this.data.playlistId + ']', -1);
+        }
+        
         this.emit('shuffle-updated');
         break;
       case 'TOGGLE_SAVE':

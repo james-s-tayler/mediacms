@@ -147,7 +147,13 @@ export default class PlaylistView extends React.PureComponent {
               >
                 <i className="material-icons">repeat</i>
               </CircleIconButton>
-              {/*<CircleIconButton className={ this.state.shuffle ? 'active' : '' } onClick={ this.onShuffleClick } title="Shuffle playlist"><i className="material-icons">shuffle</i></CircleIconButton>*/}
+              <CircleIconButton
+                className={this.state.shuffle ? 'active' : ''}
+                onClick={this.onShuffleClick}
+                title="Shuffle playlist"
+              >
+                <i className="material-icons">shuffle</i>
+              </CircleIconButton>
               {/*PlaylistViewStore.get('logged-in-user-playlist') ? null : <CircleIconButton className={ 'add-to-playlist' + ( this.state.savedPlaylist ? ' active' : '' ) } onClick={ this.onSaveClick } title={ this.state.savedPlaylist ? "Remove" : "Save playlist" }><i className="material-icons">{ this.state.savedPlaylist ? 'playlist_add_check' : 'playlist_add' }</i></CircleIconButton>*/}
             </div>
           )}
