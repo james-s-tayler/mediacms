@@ -541,7 +541,7 @@ class MediaPageStore extends EventEmitter {
       case 'playlist-id':
         r = this.pagePlaylistId;
         break;
-      case 'playlist-next-media-url':
+      case 'playlist-next-media-url': {
         if (!this.pagePlaylistData) {
           break;
         }
@@ -582,7 +582,7 @@ class MediaPageStore extends EventEmitter {
               } while (nextItem === activeItem);
               
               // Add current item to history if not already there at this position
-              if (shufflePosition === -1 || shuffleHistory[shufflePosition] !== activeItem) {
+              if (shufflePosition === -1 || (shufflePosition >= 0 && shuffleHistory[shufflePosition] !== activeItem)) {
                 // Trim history beyond current position (if user went back then forward to new item)
                 shuffleHistory = shuffleHistory.slice(0, shufflePosition + 1);
                 shuffleHistory.push(activeItem);
@@ -614,6 +614,8 @@ class MediaPageStore extends EventEmitter {
           if (nextItem === this.pagePlaylistData.playlist_media.length) {
             if (true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']')) {
               nextItem = 0;
+            } else {
+              nextItem = null;
             }
           }
         }
@@ -623,7 +625,8 @@ class MediaPageStore extends EventEmitter {
         }
 
         break;
-      case 'playlist-previous-media-url':
+      }
+      case 'playlist-previous-media-url': {
         if (!this.pagePlaylistData) {
           break;
         }
@@ -640,11 +643,11 @@ class MediaPageStore extends EventEmitter {
         }
 
         browserCache = PageStore.get('browser-cache');
-        const shuffleEnabledPrev = true === browserCache.get('shufflePlaylist[' + this.pagePlaylistId + ']');
+        const shuffleEnabled = true === browserCache.get('shufflePlaylist[' + this.pagePlaylistId + ']');
 
         let previousItem;
         
-        if (shuffleEnabledPrev) {
+        if (shuffleEnabled) {
           // In shuffle mode, go back through playback history
           let shuffleHistory = browserCache.get('shuffleHistory[' + this.pagePlaylistId + ']') || [];
           let shufflePosition = browserCache.get('shufflePosition[' + this.pagePlaylistId + ']') || -1;
@@ -655,13 +658,8 @@ class MediaPageStore extends EventEmitter {
             previousItem = shuffleHistory[shufflePosition];
             browserCache.set('shufflePosition[' + this.pagePlaylistId + ']', shufflePosition);
           } else {
-            // No history to go back to
+            // No history to go back to - previous is disabled in shuffle mode at start of history
             previousItem = null;
-            
-            // If loop is enabled, we could go to the last item
-            if (true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']')) {
-              previousItem = this.pagePlaylistData.playlist_media.length - 1;
-            }
           }
         } else {
           // Sequential mode - go to previous item in playlist order
@@ -681,6 +679,7 @@ class MediaPageStore extends EventEmitter {
         }
 
         break;
+      }
     }
     return r;
   }
