@@ -557,12 +557,31 @@ class MediaPageStore extends EventEmitter {
           i += 1;
         }
 
-        let nextItem = activeItem + 1;
+        browserCache = PageStore.get('browser-cache');
+        const shuffleEnabled = true === browserCache.get('shufflePlaylist[' + this.pagePlaylistId + ']');
 
-        if (nextItem === this.pagePlaylistData.playlist_media.length) {
-          browserCache = PageStore.get('browser-cache');
-          if (true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']')) {
-            nextItem = 0;
+        let nextItem;
+        
+        if (shuffleEnabled) {
+          // In shuffle mode, pick a random item that's not the current one
+          const playlistLength = this.pagePlaylistData.playlist_media.length;
+          if (playlistLength > 1) {
+            // Generate random index different from current
+            do {
+              nextItem = Math.floor(Math.random() * playlistLength);
+            } while (nextItem === activeItem);
+          } else {
+            // If only one item, loop to it if loop is enabled
+            nextItem = true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']') ? 0 : null;
+          }
+        } else {
+          // Sequential mode
+          nextItem = activeItem + 1;
+
+          if (nextItem === this.pagePlaylistData.playlist_media.length) {
+            if (true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']')) {
+              nextItem = 0;
+            }
           }
         }
 
@@ -587,15 +606,33 @@ class MediaPageStore extends EventEmitter {
           i += 1;
         }
 
-        let previousItem = activeItem - 1;
+        browserCache = PageStore.get('browser-cache');
+        const shuffleEnabledPrev = true === browserCache.get('shufflePlaylist[' + this.pagePlaylistId + ']');
 
-        if (0 === activeItem) {
-          previousItem = null;
+        let previousItem;
+        
+        if (shuffleEnabledPrev) {
+          // In shuffle mode, pick a random item that's not the current one
+          const playlistLength = this.pagePlaylistData.playlist_media.length;
+          if (playlistLength > 1) {
+            // Generate random index different from current
+            do {
+              previousItem = Math.floor(Math.random() * playlistLength);
+            } while (previousItem === activeItem);
+          } else {
+            // If only one item, loop to it if loop is enabled
+            previousItem = true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']') ? 0 : null;
+          }
+        } else {
+          // Sequential mode
+          previousItem = activeItem - 1;
 
-          browserCache = PageStore.get('browser-cache');
+          if (0 === activeItem) {
+            previousItem = null;
 
-          if (true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']')) {
-            previousItem = this.pagePlaylistData.playlist_media.length - 1;
+            if (true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']')) {
+              previousItem = this.pagePlaylistData.playlist_media.length - 1;
+            }
           }
         }
 
