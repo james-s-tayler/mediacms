@@ -9,7 +9,10 @@
   },
   "files": [
     "scripts",
-    "cli.js"
+    "cli.js",
+    "dist",
+    "templates",
+    "lib"
   ],
   "scripts": {
     "start": "npx rollup -w -c ./config/watch.config.js",
