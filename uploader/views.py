@@ -72,8 +72,8 @@ class FineUploaderView(generic.FormView):
         if bulk_tags:
             tag_titles = [t.strip() for t in bulk_tags.split(',') if t.strip()]
             for tag_title in tag_titles:
-                # Sanitize tag title
-                sanitized_title = get_alphanumeric_only(tag_title)
+                # Sanitize and truncate tag title (max 99 chars before get_or_create)
+                sanitized_title = get_alphanumeric_only(tag_title)[:99]
                 if sanitized_title:
                     tag, created = Tag.objects.get_or_create(
                         title=sanitized_title,
@@ -88,8 +88,10 @@ class FineUploaderView(generic.FormView):
             for playlist_id in playlist_ids:
                 try:
                     playlist = Playlist.objects.get(id=int(playlist_id), user=self.request.user)
-                    # Get the max ordering value for this playlist
-                    max_ordering = PlaylistMedia.objects.filter(playlist=playlist).count()
+                    # Use aggregate Max to avoid race conditions
+                    from django.db.models import Max
+                    max_result = PlaylistMedia.objects.filter(playlist=playlist).aggregate(Max('ordering'))
+                    max_ordering = max_result['ordering__max'] or 0
                     PlaylistMedia.objects.create(
                         playlist=playlist,
                         media=new,

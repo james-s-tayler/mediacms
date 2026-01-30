@@ -234,7 +234,7 @@
 					
 					var tags = tagsInput ? tagsInput.value.trim() : '';
 					var selectedPlaylists = [];
-					if (playlistsSelect) {
+					if (playlistsSelect && playlistsSelect.selectedOptions) {
 						var options = playlistsSelect.selectedOptions;
 						for (var i = 0; i < options.length; i++) {
 							if (options[i].value) {
