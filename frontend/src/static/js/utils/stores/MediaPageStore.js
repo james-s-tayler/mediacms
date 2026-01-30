@@ -606,33 +606,16 @@ class MediaPageStore extends EventEmitter {
           i += 1;
         }
 
-        browserCache = PageStore.get('browser-cache');
-        const shuffleEnabledPrev = true === browserCache.get('shufflePlaylist[' + this.pagePlaylistId + ']');
+        // Previous always goes to the previous item in the playlist, regardless of shuffle mode
+        let previousItem = activeItem - 1;
 
-        let previousItem;
-        
-        if (shuffleEnabledPrev) {
-          // In shuffle mode, pick a random item that's not the current one
-          const playlistLength = this.pagePlaylistData.playlist_media.length;
-          if (playlistLength > 1) {
-            // Generate random index different from current
-            do {
-              previousItem = Math.floor(Math.random() * playlistLength);
-            } while (previousItem === activeItem);
-          } else {
-            // If only one item, loop to it if loop is enabled
-            previousItem = true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']') ? 0 : null;
-          }
-        } else {
-          // Sequential mode
-          previousItem = activeItem - 1;
+        if (0 === activeItem) {
+          previousItem = null;
 
-          if (0 === activeItem) {
-            previousItem = null;
+          browserCache = PageStore.get('browser-cache');
 
-            if (true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']')) {
-              previousItem = this.pagePlaylistData.playlist_media.length - 1;
-            }
+          if (true === browserCache.get('loopPlaylist[' + this.pagePlaylistId + ']')) {
+            previousItem = this.pagePlaylistData.playlist_media.length - 1;
           }
         }
 
