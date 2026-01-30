@@ -35,6 +35,40 @@
 				</div>
 				<div class="media-uploader-top-right-wrap"> </div>
 			</div>
+			
+			<!-- Bulk Import Options -->
+			<div class="bulk-import-options" style="background: #f5f5f5; padding: 20px; margin-bottom: 20px; border-radius: 4px;">
+				<h3 style="margin-top: 0;">{{ "Bulk Import Options" | custom_translate:LANGUAGE_CODE}}</h3>
+				<p style="color: #666; font-size: 14px; margin-bottom: 15px;">{{ "Apply tags and playlists to all uploaded media" | custom_translate:LANGUAGE_CODE}}</p>
+				
+				<div style="margin-bottom: 15px;">
+					<label for="bulk-tags-input" style="display: block; font-weight: bold; margin-bottom: 5px;">
+						{{ "Tags (comma-separated)" | custom_translate:LANGUAGE_CODE}}
+					</label>
+					<input 
+						type="text" 
+						id="bulk-tags-input" 
+						placeholder="{{ 'e.g. tutorial, python, education' | custom_translate:LANGUAGE_CODE}}"
+						style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;"
+					/>
+					<small style="color: #666; font-size: 12px;">{{ "These tags will be added to all uploaded media" | custom_translate:LANGUAGE_CODE}}</small>
+				</div>
+				
+				<div>
+					<label for="bulk-playlists-select" style="display: block; font-weight: bold; margin-bottom: 5px;">
+						{{ "Playlists" | custom_translate:LANGUAGE_CODE}}
+					</label>
+					<select 
+						id="bulk-playlists-select" 
+						multiple 
+						style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; min-height: 100px;"
+					>
+						<option value="">{{ "Loading playlists..." | custom_translate:LANGUAGE_CODE}}</option>
+					</select>
+					<small style="color: #666; font-size: 12px;">{{ "Hold Ctrl/Cmd to select multiple playlists" | custom_translate:LANGUAGE_CODE}}</small>
+				</div>
+			</div>
+			
 			<script type="text/template" id="qq-template">
 				<div class="media-uploader-bottom-wrap qq-uploader-selector">
 					<div class="media-uploader-bottom-left-wrap">
@@ -156,6 +190,35 @@
 			}
 			return cookieVal;
 		}
+		
+		// Load user's playlists
+		fetch('/api/v1/playlists?author={{ request.user.username }}')
+			.then(response => response.json())
+			.then(data => {
+				const select = document.getElementById('bulk-playlists-select');
+				select.innerHTML = '';
+				const playlists = data.results || [];
+				if (playlists.length === 0) {
+					const option = document.createElement('option');
+					option.value = '';
+					option.textContent = 'No playlists available. Create one first.';
+					option.disabled = true;
+					select.appendChild(option);
+				} else {
+					playlists.forEach(playlist => {
+						const option = document.createElement('option');
+						option.value = playlist.id;
+						option.textContent = playlist.title;
+						select.appendChild(option);
+					});
+				}
+			})
+			.catch(error => {
+				console.error('Error loading playlists:', error);
+				const select = document.getElementById('bulk-playlists-select');
+				select.innerHTML = '<option value="" disabled>Error loading playlists</option>';
+			});
+		
 		var default_concurrent_chunked_uploader = new qq.FineUploader({
 			debug: false,
 			element: document.querySelector('.media-uploader'),
@@ -164,6 +227,27 @@
 				customHeaders: {
 					'X-CSRFToken': getCSRFToken('csrftoken'),
 				},
+				params: function() {
+					// Get bulk import options
+					var tagsInput = document.getElementById('bulk-tags-input');
+					var playlistsSelect = document.getElementById('bulk-playlists-select');
+					
+					var tags = tagsInput ? tagsInput.value.trim() : '';
+					var selectedPlaylists = [];
+					if (playlistsSelect && playlistsSelect.selectedOptions) {
+						var options = playlistsSelect.selectedOptions;
+						for (var i = 0; i < options.length; i++) {
+							if (options[i].value) {
+								selectedPlaylists.push(options[i].value);
+							}
+						}
+					}
+					
+					return {
+						'bulk_tags': tags,
+						'bulk_playlists': selectedPlaylists.join(',')
+					};
+				}
 			},
 			retry: {
 				enableAuto: true,
