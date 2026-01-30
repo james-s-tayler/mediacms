@@ -31,8 +31,13 @@ class MediaList(APIView):
         manual_parameters=[
             openapi.Parameter(name='sort_by', type=openapi.TYPE_STRING, in_=openapi.IN_QUERY, description='Sort by any of: title, add_date, edit_date, views, likes, reported_times'),
             openapi.Parameter(name='ordering', type=openapi.TYPE_STRING, in_=openapi.IN_QUERY, description='Order by: asc, desc'),
-            openapi.Parameter(name='state', type=openapi.TYPE_STRING, in_=openapi.IN_QUERY, description='Media state, options: private", "public", "unlisted'),
-            openapi.Parameter(name='encoding_status', type=openapi.TYPE_STRING, in_=openapi.IN_QUERY, description='Encoding status, options "pending", "running", "fail", "success"'),
+            openapi.Parameter(name='state', type=openapi.TYPE_STRING, in_=openapi.IN_QUERY, description='Media state, options: "private", "public", "unlisted"'),
+            openapi.Parameter(name='encoding_status', type=openapi.TYPE_STRING, in_=openapi.IN_QUERY, description='Encoding status, options: "pending", "running", "fail", "success"'),
+            openapi.Parameter(name='media_type', type=openapi.TYPE_STRING, in_=openapi.IN_QUERY, description='Media type, options: "video", "audio", "image", "pdf"'),
+            openapi.Parameter(name='featured', type=openapi.TYPE_STRING, in_=openapi.IN_QUERY, description='Filter by featured status, options: "true", "false", "all"'),
+            openapi.Parameter(name='is_reviewed', type=openapi.TYPE_STRING, in_=openapi.IN_QUERY, description='Filter by reviewed status, options: "true", "false", "all"'),
+            openapi.Parameter(name='reported', type=openapi.TYPE_STRING, in_=openapi.IN_QUERY, description='Filter by reported status, options: "true", "false", "all"'),
+            openapi.Parameter(name='category', type=openapi.TYPE_STRING, in_=openapi.IN_QUERY, description='Filter by category title (contains match)'),
         ],
         tags=['Manage'],
         operation_summary='Manage Media',
@@ -49,6 +54,7 @@ class MediaList(APIView):
         featured = params.get("featured", "").strip()
         is_reviewed = params.get("is_reviewed", "").strip()
         category = params.get("category", "").strip()
+        reported = params.get("reported", "").strip()
 
         sort_by_options = [
             "title",
@@ -86,6 +92,12 @@ class MediaList(APIView):
             is_reviewed = False
         else:
             is_reviewed = "all"
+        if reported == "true":
+            reported = True
+        elif reported == "false":
+            reported = False
+        else:
+            reported = "all"
 
         pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
         qs = Media.objects.filter()
@@ -100,6 +112,11 @@ class MediaList(APIView):
             qs = qs.filter(featured=featured)
         if is_reviewed != "all":
             qs = qs.filter(is_reviewed=is_reviewed)
+        if reported != "all":
+            if reported:
+                qs = qs.filter(reported_times__gt=0)
+            else:
+                qs = qs.filter(reported_times=0)
 
         if category:
             qs = qs.filter(category__title__contains=category)
