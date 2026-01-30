@@ -41,6 +41,11 @@ const filters = {
     { id: 'true', title: 'Yes' },
     { id: 'false', title: 'No' },
   ],
+  reported: [
+    { id: 'all', title: 'All' },
+    { id: 'true', title: 'Yes' },
+    { id: 'false', title: 'No' },
+  ],
 };
 
 export function ManageMediaFilters(props) {
@@ -52,6 +57,7 @@ export function ManageMediaFilters(props) {
   const [isFeatured, setIsFeatured] = useState('all');
   const [isReviewed, setIsReviewed] = useState('all');
   const [category, setCategory] = useState('all');
+  const [isReported, setIsReported] = useState('all');
 
   const containerRef = useRef(null);
   const innerContainerRef = useRef(null);
@@ -70,6 +76,7 @@ export function ManageMediaFilters(props) {
       featured: isFeatured,
       is_reviewed: isReviewed,
       category: category,
+      reported: isReported,
     };
 
     switch (ev.currentTarget.getAttribute('filter')) {
@@ -97,6 +104,11 @@ export function ManageMediaFilters(props) {
         args.is_reviewed = ev.currentTarget.getAttribute('value');
         props.onFiltersUpdate(args);
         setIsReviewed(args.is_reviewed);
+        break;
+      case 'reported':
+        args.reported = ev.currentTarget.getAttribute('value');
+        props.onFiltersUpdate(args);
+        setIsReported(args.reported);
         break;
       case 'category':
         args.category = ev.currentTarget.getAttribute('value');
@@ -161,6 +173,13 @@ export function ManageMediaFilters(props) {
           <div className="mi-filter-title">FEATURED</div>
           <div className="mi-filter-options">
             <FilterOptions id={'featured'} options={filters.featured} selected={isFeatured} onSelect={onFilterSelect} />
+          </div>
+        </div>
+
+        <div className="mi-filter">
+          <div className="mi-filter-title">REPORTED</div>
+          <div className="mi-filter-options">
+            <FilterOptions id={'reported'} options={filters.reported} selected={isReported} onSelect={onFilterSelect} />
           </div>
         </div>
 
