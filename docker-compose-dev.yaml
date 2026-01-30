@@ -31,9 +31,8 @@ services:
   web:
     image: mediacms/mediacms-dev:latest
     command: bash -c "
-      apt-get update && apt-get install -y rsync curl &&
-      curl -fsSL https://deb.nodesource.com/setup_20.x | bash - &&
-      apt-get install -y nodejs &&
+      apt-get update && apt-get install -y rsync curl nodejs npm &&
+      pip install django-cors-headers django-debug-toolbar &&
       /home/mediacms.io/mediacms/deploy/docker/build-frontend.sh &&
       python manage.py runserver 0.0.0.0:80"
     environment:
