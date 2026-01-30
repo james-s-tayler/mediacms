@@ -2,7 +2,7 @@ import uuid
 
 from django.test import Client, TestCase
 
-from files.models import Encoding, Media
+from files.models import Encoding, Media, Tag, Playlist, PlaylistMedia
 from files.tests import create_account
 
 API_V1_LOGIN_URL = '/api/v1/login'
@@ -48,3 +48,65 @@ class TestX(TestCase):
         # using the provided EncodeProfiles, these two files should produce 9 Encoding objects.
         # if new EncodeProfiles are added and enabled, this will break!
         self.assertEqual(Encoding.objects.filter(status='success').count(), 10, "Not all video transcodings finished well")
+
+    def test_bulk_import_with_tags_and_playlists(self):
+        """Test that bulk import applies tags and playlists to uploaded media"""
+        client = Client()
+        client.login(username=self.user.username, password=self.password)
+
+        # Create a playlist for testing
+        playlist = Playlist.objects.create(title='Test Playlist', user=self.user)
+
+        # Upload a file with bulk tags and playlists
+        with open('fixtures/test_image.png', 'rb') as fp:
+            response = client.post('/fu/upload/', {
+                'qqfile': fp,
+                'qqfilename': 'test_bulk_import.png',
+                'qquuid': str(uuid.uuid4()),
+                'bulk_tags': 'test, import, demo',
+                'bulk_playlists': str(playlist.id)
+            })
+
+        # Verify the upload was successful
+        self.assertEqual(response.status_code, 200)
+        
+        # Get the uploaded media
+        media = Media.objects.get(title='test_bulk_import.png')
+        
+        # Verify tags were applied
+        tags = list(media.tags.all())
+        self.assertEqual(len(tags), 3, "Expected 3 tags to be applied")
+        tag_titles = [tag.title for tag in tags]
+        self.assertIn('test', tag_titles, "Expected 'test' tag")
+        self.assertIn('import', tag_titles, "Expected 'import' tag")
+        self.assertIn('demo', tag_titles, "Expected 'demo' tag")
+        
+        # Verify playlist was applied
+        playlist_media = PlaylistMedia.objects.filter(media=media, playlist=playlist)
+        self.assertEqual(playlist_media.count(), 1, "Expected media to be in playlist")
+
+    def test_bulk_import_with_no_tags_or_playlists(self):
+        """Test that upload works normally without bulk import options"""
+        client = Client()
+        client.login(username=self.user.username, password=self.password)
+
+        # Upload a file without bulk import options
+        with open('fixtures/test_image.png', 'rb') as fp:
+            response = client.post('/fu/upload/', {
+                'qqfile': fp,
+                'qqfilename': 'test_normal_import.png',
+                'qquuid': str(uuid.uuid4())
+            })
+
+        # Verify the upload was successful
+        self.assertEqual(response.status_code, 200)
+        
+        # Get the uploaded media
+        media = Media.objects.get(title='test_normal_import.png')
+        
+        # Verify no tags were applied
+        self.assertEqual(media.tags.count(), 0, "Expected no tags to be applied")
+        
+        # Verify media is not in any playlists
+        playlist_media = PlaylistMedia.objects.filter(media=media)
+        self.assertEqual(playlist_media.count(), 0, "Expected media to not be in any playlists")
